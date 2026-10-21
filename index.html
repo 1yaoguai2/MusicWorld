@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<title>MusicWorld · 本地音乐播放器</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🎧</text></svg>">
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <!-- ================= 侧边栏 ================= -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>MusicWorld</h1>
+        <span>本地音乐播放器</span>
+      </div>
+    </div>
+
+    <div class="lib-status" id="libStatus">
+      <span class="dot"></span>
+      <span id="libStatusText">音乐库未加载</span>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-title">音乐库</div>
+      <ul class="nav-list" id="navBuiltin"></ul>
+    </div>
+
+    <div class="nav-section nav-section-grow">
+      <div class="nav-title">
+        <span>我的歌单</span>
+        <button class="mini-btn" id="btnNewPlaylist" title="新建歌单">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+      <ul class="nav-list" id="navPlaylists"></ul>
+      <div class="nav-empty" id="playlistEmpty">还没有自建歌单</div>
+    </div>
+
+    <div class="sidebar-foot">
+      <button class="ghost-btn" id="btnRescan" title="重新扫描当前音乐库">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.9-3.4L23 10"/><path d="M1 14l4.6 4.4A9 9 0 0 0 20.5 15"/>
+        </svg>
+        <span>重新扫描</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ================= 主区域 ================= -->
+  <main class="main">
+    <header class="topbar">
+      <button class="icon-btn only-mobile" id="btnOpenSidebar" title="菜单">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+
+      <label class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input type="search" id="searchInput" placeholder="搜索歌曲、歌手…" autocomplete="off">
+        <button type="button" class="search-clear" id="btnClearSearch" title="清除">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </label>
+
+      <div class="topbar-actions">
+        <button class="pill-btn only-desktop" id="btnLoadFolderTop">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          <span>导入文件夹</span>
+        </button>
+        <button class="icon-btn" id="btnTheme" title="切换白天 / 夜间主题">
+          <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
+          </svg>
+          <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4.2"/><path d="M12 1.5v2.5M12 20v2.5M4.2 4.2l1.8 1.8M18 18l1.8 1.8M1.5 12H4M20 12h2.5M4.2 19.8L6 18M18 6l1.8-1.8"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <section class="content" id="content">
+      <!-- 空状态 -->
+      <div class="empty-state" id="emptyState">
+        <div class="empty-art">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+          </svg>
+        </div>
+        <h2>先把音乐放进来</h2>
+        <p>点击下方按钮选择音乐库根目录（里面包含 <code>music</code> 与 <code>lyrics</code> 两个文件夹）；<br>也可以直接勾选音频文件和歌词文件导入，歌词是同名的 <code>.lrc</code> 即可自动匹配。</p>
+        <div class="empty-actions">
+          <button class="btn primary big" id="btnEmptyLoad">选择音乐文件夹</button>
+          <button class="btn ghost big" id="btnEmptyFiles">选择音频文件</button>
+        </div>
+        <div class="empty-hint" id="autoHint" hidden></div>
+        <button class="link-btn" id="btnRestoreLib" hidden>恢复上次的音乐库</button>
+        <div class="empty-tip">支持 MP3 / FLAC / WAV / OGG / M4A / AAC 等格式</div>
+      </div>
+
+      <!-- 歌单视图 -->
+      <div class="list-view" id="listView" hidden>
+        <div class="list-head">
+          <div class="cover-xl" id="listCover">
+            <div class="cover-fallback" id="listCoverFallback">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+              </svg>
+            </div>
+          </div>
+          <div class="list-head-info">
+            <div class="eyebrow" id="listEyebrow">歌单</div>
+            <h2 id="listTitle">全部音乐</h2>
+            <p class="list-desc" id="listDesc">0 首歌曲</p>
+            <div class="list-actions">
+              <button class="btn primary" id="btnPlayAll">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                <span>播放全部</span>
+              </button>
+              <button class="btn ghost" id="btnShuffleAll">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/>
+                  <polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/>
+                </svg>
+                <span>随机播放</span>
+              </button>
+              <button class="btn ghost only-custom" id="btnRenamePlaylist" hidden>重命名</button>
+              <button class="btn ghost danger only-custom" id="btnDeletePlaylist" hidden>删除歌单</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="track-head">
+          <span class="col-index">#</span>
+          <span class="col-title">标题</span>
+          <span class="col-album">专辑</span>
+          <span class="col-dur">时长</span>
+          <span class="col-ops"></span>
+        </div>
+
+        <div class="track-list" id="trackList"></div>
+
+        <div class="list-empty" id="listEmpty" hidden>
+          <p>这里还没有歌曲</p>
+          <span>在「全部音乐」里把歌曲加入这个歌单吧</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ================= 正在播放 / 歌词 ================= -->
+  <aside class="now-panel" id="nowPanel">
+    <div class="now-head">
+      <span>正在播放</span>
+      <button class="icon-btn only-mobile" id="btnCloseNow" title="收起">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="now-cover" id="nowCover">
+      <div class="cover-fallback lg" id="nowCoverFallback">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+        </svg>
+      </div>
+      <img id="nowCoverImg" alt="">
+      <div class="cover-glow"></div>
+    </div>
+
+    <div class="now-meta">
+      <h3 id="nowTitle">未在播放</h3>
+      <p id="nowArtist">选择一首歌开始</p>
+    </div>
+
+    <div class="lyrics-wrap">
+      <div class="lyrics" id="lyrics">
+        <div class="lyrics-inner" id="lyricsInner">
+          <div class="lyrics-placeholder" id="lyricsPlaceholder">暂无歌词</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="now-foot">
+      <button class="ghost-btn small" id="btnNowAddToList">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        <span>加入歌单</span>
+      </button>
+      <button class="ghost-btn small icon-only" id="btnNowFav" title="收藏">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l8.9 8.9 8.9-8.9a5.5 5.5 0 0 0 0-7.8z"/>
+        </svg>
+      </button>
+    </div>
+  </aside>
+</div>
+
+<!-- ================= 底部播放条 ================= -->
+<footer class="player-bar" id="playerBar">
+  <div class="pb-info" id="pbInfo">
+    <div class="mini-cover" id="miniCover">
+      <div class="cover-fallback sm">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+        </svg>
+      </div>
+      <img id="miniCoverImg" alt="">
+    </div>
+    <div class="pb-meta">
+      <div class="mini-title" id="miniTitle">未在播放</div>
+      <div class="mini-artist" id="miniArtist">—</div>
+    </div>
+    <button class="icon-btn tiny" id="btnFavMini" title="收藏">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l8.9 8.9 8.9-8.9a5.5 5.5 0 0 0 0-7.8z"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="pb-center">
+    <div class="controls">
+      <button class="ctrl" id="btnMode" title="播放模式：列表循环">
+        <svg class="mode-order" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 12h15"/><polyline points="14 7 19 12 14 17"/>
+        </svg>
+        <svg class="mode-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+          <polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+        </svg>
+        <svg class="mode-one" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+          <polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+          <text x="12" y="15.5" font-size="8" fill="currentColor" stroke="none" text-anchor="middle" font-weight="700">1</text>
+        </svg>
+        <svg class="mode-shuffle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/>
+          <polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/>
+        </svg>
+      </button>
+
+      <button class="ctrl" id="btnPrev" title="上一首 (Ctrl+←)">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h2.2v14H7zM19 5v14l-9-7z"/></svg>
+      </button>
+
+      <button class="play-btn" id="btnPlay" title="播放 / 暂停 (空格)">
+        <svg class="ico-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.2v13.6L19 12z"/></svg>
+        <svg class="ico-pause" viewBox="0 0 24 24" fill="currentColor"><path d="M6.5 5h3.6v14H6.5zM13.9 5h3.6v14h-3.6z"/></svg>
+      </button>
+
+      <button class="ctrl" id="btnNext" title="下一首 (Ctrl+→)">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M14.8 5H17v14h-2.2zM5 5l9 7-9 7z"/></svg>
+      </button>
+
+      <button class="ctrl subtle" id="btnQueue" title="播放队列">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 6h12M3 12h12M3 18h8"/><path d="M18 9v9"/><circle cx="16.5" cy="19" r="2.2"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="progress-row">
+      <span class="time" id="curTime">0:00</span>
+      <div class="bar" id="progressBar" role="slider" tabindex="0" aria-label="播放进度">
+        <div class="bar-bg"></div>
+        <div class="bar-fill" id="progressFill"></div>
+        <div class="bar-thumb" id="progressThumb"></div>
+      </div>
+      <span class="time" id="durTime">0:00</span>
+    </div>
+  </div>
+
+  <div class="pb-right">
+    <button class="ctrl subtle" id="btnMute" title="静音 (M)">
+      <svg class="ico-vol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M11 5L6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/>
+      </svg>
+      <svg class="ico-mute" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M11 5L6 9H3v6h3l5 4z"/><path d="M22 9l-6 6M16 9l6 6"/>
+      </svg>
+    </button>
+    <div class="bar volume" id="volumeBar" role="slider" tabindex="0" aria-label="音量">
+      <div class="bar-bg"></div>
+      <div class="bar-fill" id="volumeFill"></div>
+      <div class="bar-thumb" id="volumeThumb"></div>
+    </div>
+    <button class="ctrl subtle only-desktop" id="btnOpenNow" title="歌词面板">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 6h16M4 12h10M4 18h6"/>
+      </svg>
+    </button>
+  </div>
+</footer>
+
+<audio id="audio" preload="metadata"></audio>
+
+<!-- ================= 弹层 ================= -->
+<div class="overlay" id="overlay" hidden></div>
+
+<!-- 歌单选择器 -->
+<div class="sheet" id="addSheet" hidden>
+  <div class="sheet-head">
+    <h3>加入歌单</h3>
+    <button class="icon-btn" data-close-sheet>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="sheet-body" id="addSheetBody"></div>
+  <div class="sheet-foot">
+    <button class="btn ghost full" id="btnSheetNewPlaylist">+ 新建歌单并加入</button>
+  </div>
+</div>
+
+<!-- 输入弹层 -->
+<div class="sheet narrow" id="promptSheet" hidden>
+  <div class="sheet-head">
+    <h3 id="promptTitle">新建歌单</h3>
+    <button class="icon-btn" data-close-sheet>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="sheet-body">
+    <input class="text-input" id="promptInput" placeholder="歌单名称" maxlength="30">
+    <div class="prompt-error" id="promptError"></div>
+  </div>
+  <div class="sheet-foot row">
+    <button class="btn ghost" id="promptCancel">取消</button>
+    <button class="btn primary" id="promptOk">确定</button>
+  </div>
+</div>
+
+<!-- 播放队列抽屉 -->
+<div class="queue-drawer" id="queueDrawer" hidden>
+  <div class="sheet-head">
+    <h3>播放队列 <span class="queue-count" id="queueCount">0</span></h3>
+    <button class="icon-btn" id="btnCloseQueue">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="queue-body" id="queueBody"></div>
+</div>
+
+<input type="file" id="inputDir" webkitdirectory multiple hidden>
+<input type="file" id="inputFiles" multiple hidden
+  accept="audio/*,.mp3,.flac,.wav,.ogg,.oga,.m4a,.aac,.opus,.wma,.aiff,.aif,.ape,.lrc,.txt">
+
+<div class="toast" id="toast"></div>
+
+<script src="js/core.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
