@@ -120,6 +120,7 @@
     muted: !!stored.muted,
     currentTrack: null,
     currentObjectUrl: null,
+    errorRetried: false,
     search: '',
     shufflePool: [],
     rootHandle: null,
@@ -663,6 +664,7 @@
 
   async function playTrack(track, autoplay) {
     const seq = ++loadSeq;
+    state.errorRetried = false;
 
     if (state.currentObjectUrl) {
       try { URL.revokeObjectURL(state.currentObjectUrl); } catch (e) { /* ignore */ }
@@ -879,6 +881,19 @@
 
   el.audio.addEventListener('error', function () {
     if (!el.audio.src) return;
+    const track = state.currentTrack;
+    // Chromium 媒体缓存偶发 ERR_CACHE_OPERATION_NOT_SUPPORTED：
+    // 切歌时被中断的 Range 请求写缓存失败，导致下一首加载失败。
+    // 兜底方案：给 URL 加查询参数换缓存键，自动重试一次。
+    if (track && track.url && !state.errorRetried) {
+      state.errorRetried = true;
+      const sep = track.url.indexOf('?') === -1 ? '?' : '&';
+      el.audio.src = track.url + sep + 'mwretry=' + Date.now();
+      el.audio.load();
+      const p = el.audio.play();
+      if (p && p.catch) p.catch(function () { /* 自动播放被拦截 */ });
+      return;
+    }
     toast('播放失败：格式不支持或文件已移动');
   });
 
